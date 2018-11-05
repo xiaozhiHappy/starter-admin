@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.haier.fintech.modules.sys.dao.SysUserDao">
+	<!-- 查询用户的所有权限 -->
+	<select id="queryAllPerms" resultType="string">
+		select m.perms from
+		sys_user_role ur
+		LEFT JOIN sys_role_menu rm on ur.role_id = rm.role_id
+		LEFT JOIN sys_menu m on rm.menu_id = m.menu_id
+		where ur.user_id = #{userId}
+	</select>
+
+	<!-- 查询用户的所有菜单ID -->
+	<select id="queryAllMenuId" resultType="long">
+		select distinct
+		rm.menu_id from sys_user_role ur
+		LEFT JOIN sys_role_menu rm on ur.role_id = rm.role_id
+		where ur.user_id = #{userId}
+	</select>
+
+	<select id="queryByUserName" resultType="com.haier.fintech.modules.sys.entity.SysUserEntity">
+		select a.* , (select b.parent_id from sys_dept b where a.dept_id = b.dept_id) as dept_parent_id from sys_user a 
+		where a.username = #{username}
+	</select>
+	
+	<select id="getUsersList" resultType="com.haier.fintech.modules.sys.entity.SysUserEntity">
+		select user_id,username,name from sys_user where type=2 and status=1 
+		and (username like CONCAT(CONCAT('%',#{word},'%')) or name like CONCAT(CONCAT('%',#{word},'%')))
+	</select>
+	
+	<select id="getUsersListByDeptId" resultType="com.haier.fintech.modules.sys.entity.SysUserEntity">
+		select user_id,username,name from sys_user where type=2 and status=1 
+		and dept_id = #{deptId}
+	</select>
+	
+	<select id="getUsersListByRoleId" resultType="com.haier.fintech.modules.sys.entity.SysUserEntity">
+		SELECT su.user_id,su.username,su.name from sys_user su,sys_user_role sur where sur.user_id=su.user_id
+		and sur.role_id =#{roleId} and su.type=2 and su.status=1 
+	</select>
+
+</mapper>

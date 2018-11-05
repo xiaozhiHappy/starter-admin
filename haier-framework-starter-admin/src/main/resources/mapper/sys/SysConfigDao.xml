@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">    
+<mapper namespace="com.haier.fintech.modules.sys.dao.SysConfigDao">
+	
+	<select id="queryObject" resultType="com.haier.fintech.modules.sys.entity.SysConfigEntity">
+		select * from sys_config where id = #{value}
+	</select>
+
+	<select id="queryParentList" resultType="com.haier.fintech.modules.sys.entity.SysConfigEntity">
+		<if test="value != null and value != ''">
+            select `key`,`id` as `value`,`value` as `remark`,parent_id from sys_config where parent_id=#{value} order by order_num
+        </if>
+		<if test="key != null and key != ''">
+			select * from  sys_config where parent_id = (SELECT id  FROM `sys_config` where `value` = #{key})   order by order_num    
+		</if>
+	</select>
+	
+	<select id="queryList" parameterType="map" resultType="com.haier.fintech.modules.sys.entity.SysConfigEntity">
+        select c.*,(select p.key from sys_config p where p.id = c.parent_id) as parentName
+        from sys_config c
+        <if test="tid != null and tid != '' and tid != '0'">
+            where c.id &lt;&gt; #{tid}
+        </if>
+		<choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by c.${sidx} ${order}
+            </when>
+			<otherwise>
+                order by c.order_num asc
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	
+	<insert id="save" parameterType="com.haier.fintech.modules.sys.entity.SysConfigEntity">
+		insert into sys_config(parent_id,`key`,`value`,order_num)
+			values(#{parentId},#{key},#{value},#{orderNum})
+	</insert>
+	
+	<update id="update" parameterType="com.haier.fintech.modules.sys.entity.SysConfigEntity">
+		update sys_config 
+		<set>
+			<if test="key != null and key != '' ">`key` = #{key}, </if>
+			<if test="value != null and value != ''">`value` = #{value}, </if>
+			<if test="orderNum != null">`order_num` = #{orderNum},</if>
+            <if test="parentId != null">`parent_id` = #{parentId}</if>
+		</set>
+		where id = #{id}
+	</update>
+	
+	<!-- 根据key，更新value -->
+	<update id="updateValueByKey" parameterType="map">
+		update sys_config set `value` = #{value} where `key` = #{key}
+	</update>
+
+	<!-- 根据key，查询value -->
+	<select id="queryByKey" parameterType="string" resultType="com.haier.fintech.modules.sys.entity.SysConfigEntity">
+		select * from sys_config where `key` = #{key}
+	</select>
+	<select id="queryListByKey" parameterType="string" resultType="com.haier.fintech.modules.sys.entity.SysConfigEntity">
+		select `key`,`value` from sys_config where parent_id in (select id from sys_config where `key` = #{key})
+	</select>
+	
+	<delete id="deleteBatch" >
+		delete from sys_config where id in 
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids}
+		</foreach>
+	</delete>
+	
+	<!-- 落地接口字典验证方法 -->
+	<select id="validateDictionary" parameterType="map">
+		SELECT count(*) FROM sys_config sc_c 
+		WHERE sc_c.parent_id IN (SELECT sc.id FROM sys_config sc WHERE sc.`value` = #{parentValue})
+			AND sc_c.`value` = #{value}
+	</select>
+	
+</mapper>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.haier.fintech.modules.sys.dao.SysDeptDao">
+
+	<select id="queryObject" resultType="com.haier.fintech.modules.sys.entity.SysDeptEntity">
+		select d.* ,(select p.name from sys_dept p where p.dept_id = d.parent_id) as parentName from sys_dept d where d.dept_id = #{value} and d.del_flag = 0
+	</select>
+	<select id="getDeptByName" resultType="com.haier.fintech.modules.sys.entity.SysDeptEntity">
+		select * from sys_dept where name = #{value} and del_flag = 0
+	</select>
+
+	<select id="getDepts" resultType="com.haier.fintech.modules.sys.entity.SysDeptEntity">
+		select dept_id,parent_id,`name` from sys_dept where del_flag = 0
+	</select>
+
+
+	<select id="queryList" resultType="com.haier.fintech.modules.sys.entity.SysDeptEntity">
+		select d.*,(select p.name from sys_dept p where p.dept_id = d.parent_id) as parentName
+		from sys_dept d 
+		<!--  数据过滤  -->
+		<where>
+				d.del_flag = 0
+			<if test="businessId != null and businessId != ''">
+				 AND business_id = #{businessId}  
+			</if>
+
+			<!--  数据过滤  -->
+			${filterSql}
+		</where>
+        <choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by d.${sidx} ${order}
+            </when>
+			<otherwise>
+                <!--  order by d.order_num asc-->
+                order by d.dept_id desc;
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	 
+	<insert id="save" parameterType="com.haier.fintech.modules.sys.entity.SysDeptEntity" useGeneratedKeys="true" keyProperty="deptId">
+		insert into sys_dept
+		(   `dept_id`,
+			`parent_id`, 
+			`order_num`,
+			`name`,
+			`contacts`
+			 
+		)
+		values
+		(	#{deptId},
+			#{parentId}, 
+			#{orderNum},
+			#{name}, 
+			#{contacts}
+		)
+	</insert>
+	
+	<select id="queryDetpIdList" resultType="String">
+		select dept_id from sys_dept where parent_id = #{value} and del_flag = 0
+	</select>
+	
+	<update id="updateDeptByDeptId" parameterType="com.haier.fintech.modules.sys.entity.SysDeptEntity">
+		update sys_dept
+		<set>
+			<if test="parentId != null">`parent_id` = #{parentId}, </if>
+			<if test="name != null">`name` = #{name}, </if>
+			<if test="orderNum != null">`order_num` = #{orderNum},</if>
+			<if test="businessId != null">`business_id` = #{businessId},</if>
+			<if test="contacts != null">`contacts` = #{contacts}</if>
+		</set>		
+		 where dept_id = #{deptId}
+	</update>
+	<update id="updateOrg">
+		delete from  sys_dept where dept_id!='1';
+		INSERT into sys_dept 
+		select DISTINCT t.pt_code as dept_id, '1' as parent_id, t.pt_name as name, 
+		t.pt_master_code as contacts, 0 as order_num, 0 as del_flag from tb_org t order by t.pt_code;
+		INSERT into sys_dept 
+		select DISTINCT t.xw_code as dept_id, t.pt_code as parent_id, t.xw_name as name, 
+		t.xw_master_code as contacts, 0 as order_num, 0 as del_flag from tb_org t order by t.pt_code, t.xw_code;
+	</update>
+	
+	<select id="getDeptsList" resultType="com.haier.fintech.modules.sys.entity.SysDeptEntity">
+		SELECT * FROM `sys_dept` where parent_id is not null and parent_id !=1 and del_flag=0;
+	</select>
+
+</mapper>
